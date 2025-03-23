@@ -24,6 +24,12 @@ public class AuthService {
 
     public UserDto signUp(SignupRequestDto signupRequestDto) {
         log.info("Attempting to signup the user with email: {}",signupRequestDto.getEmail());
+
+        boolean exists = userRepository.existsByEmail((signupRequestDto.getEmail()));
+        if (exists){
+            throw new BadRequestException("User already exists, cannot signup again.");
+        }
+
         User user =  modelMapper.map(signupRequestDto, User.class);
 
         user.setPassword(PasswordUtil.hashPassword(signupRequestDto.getPassword()));
