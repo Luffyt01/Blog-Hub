@@ -18,6 +18,13 @@ spring:
           filters:
             - StripPrefix=2
 
+        - id: connections-service
+          uri: lb://CONNECTIONS-SERVICE
+          predicates:
+            - Path=/api/v1/connections/**
+          filters:
+            - StripPrefix=2
+
 server.port: 8080
 
 
