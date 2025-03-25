@@ -1,5 +1,6 @@
 package com.project.bloghub.post_service.controller;
 
+import com.project.bloghub.post_service.auth.UserContextHolder;
 import com.project.bloghub.post_service.dto.PostCreateRequestDto;
 import com.project.bloghub.post_service.dto.PostDto;
 import com.project.bloghub.post_service.entity.Post;
@@ -21,8 +22,8 @@ public class PostController {
 
 
     @PostMapping("/createPost")
-    public ResponseEntity<PostDto> createPost(@RequestBody PostCreateRequestDto postCreateRequestDto, HttpServletRequest httpServletRequest){
-        PostDto createdPost = postService.createPost(postCreateRequestDto, 1L);
+    public ResponseEntity<PostDto> createPost(@RequestBody PostCreateRequestDto postCreateRequestDto){
+        PostDto createdPost = postService.createPost(postCreateRequestDto);
         return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
     }
 
@@ -33,9 +34,9 @@ public class PostController {
     }
 
 
-    @GetMapping("/users/{userId}/allPosts")
-    public ResponseEntity<List<PostDto>> getALlPostsOfUser(@PathVariable Long userId){
-        List<PostDto> posts = postService.getAllPostOfUser(userId);
+    @GetMapping("/users/allPosts")
+    public ResponseEntity<List<PostDto>> getALlPostsOfUser(){
+        List<PostDto> posts = postService.getAllPostOfUser();
         return ResponseEntity.ok(posts);
     }
 

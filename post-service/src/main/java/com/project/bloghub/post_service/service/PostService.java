@@ -1,5 +1,6 @@
 package com.project.bloghub.post_service.service;
 
+import com.project.bloghub.post_service.auth.UserContextHolder;
 import com.project.bloghub.post_service.dto.PostCreateRequestDto;
 import com.project.bloghub.post_service.dto.PostDto;
 import com.project.bloghub.post_service.entity.Post;
@@ -21,7 +22,8 @@ public class PostService {
     private final PostRepository postRepository;
 
 
-    public PostDto createPost(PostCreateRequestDto postCreateRequestDto, Long userId) {
+    public PostDto createPost(PostCreateRequestDto postCreateRequestDto) {
+        Long userId = UserContextHolder.getCurrentUserId();
         log.info("Creating post for user with id: {}",userId);
         Post post = modelMapper.map(postCreateRequestDto, Post.class);
         post.setUserId(userId);
@@ -40,7 +42,8 @@ public class PostService {
         return modelMapper.map(post, PostDto.class);
     }
 
-    public List<PostDto> getAllPostOfUser(Long userId) {
+    public List<PostDto> getAllPostOfUser() {
+        Long userId = UserContextHolder.getCurrentUserId();
         log.info("Fetching all the post for user with id: {}",userId);
 
         List<Post> posts = postRepository.findPostByUserId(userId);
