@@ -14,8 +14,10 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    // Fetching the value of jwtSecretKey from the application.properties file
     @Value("${jwt.secretKey}")
     private String jwtSecretKey;
+
 
     private SecretKey getSecretKey(){
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));

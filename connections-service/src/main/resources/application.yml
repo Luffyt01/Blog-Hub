@@ -1,0 +1,10 @@
+kafka.topic:
+  send-connection-request-topic: send-connection-request-topic
+  accept-connection-request-topic: accept-connection-request-topic
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
