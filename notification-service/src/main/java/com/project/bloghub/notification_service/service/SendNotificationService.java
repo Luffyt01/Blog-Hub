@@ -3,10 +3,12 @@ package com.project.bloghub.notification_service.service;
 import com.project.bloghub.notification_service.entity.Notification;
 import com.project.bloghub.notification_service.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SendNotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -17,5 +19,7 @@ public class SendNotificationService {
         notification.setUserId(userId);
 
         notificationRepository.save(notification);
+
+        log.info("Notification saved for user: {}", userId);
     }
 }
