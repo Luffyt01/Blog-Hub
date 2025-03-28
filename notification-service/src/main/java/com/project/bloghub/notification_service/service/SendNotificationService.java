@@ -5,7 +5,9 @@ import com.project.bloghub.notification_service.repository.NotificationRepositor
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
+/*
+ * Service class to handle logic related to sending notifications
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
