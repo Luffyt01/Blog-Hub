@@ -1,0 +1,276 @@
+version: "3.8"
+
+services:
+  kafka:
+    image: docker.io/bitnami/kafka:3.8
+    container_name: kafka
+    hostname: kafka
+    volumes:
+      - kafka-data:/bitnami
+    networks:
+      - blog-hub-network
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_HEAP_OPTS=-Xmx384m -Xms128m
+    healthcheck:
+      test: >
+        bash -c "
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1
+        /opt/bitnami/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server localhost:9092 describe --status | grep -q 'LeaderId: 0' || exit 1
+        "
+      interval: 15s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  kafbat-ui:
+    container_name: kafbat-ui
+    image: ghcr.io/kafbat/kafka-ui:latest
+    ports:
+      - "8090:8090"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - blog-hub-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  discovery-server:
+    image: luffy010/blog-hub/discovery-server
+    container_name: discovery-server
+    networks:
+      - blog-hub-network
+    ports:
+      - "8761:8761"
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms128m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+
+  connections-db:
+    image: neo4j
+    container_name: connections-db
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_dbms_memory_heap_max__size=384m
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - connections-db-data:/data
+    networks:
+      - blog-hub-network
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "password", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  notification-db:
+    image: postgres
+    container_name: notification-db
+    environment:
+      - POSTGRES_DB=notificationDB
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    networks:
+      - blog-hub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d notificationDB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  post-db:
+    image: postgres
+    container_name: post-db
+    environment:
+      - POSTGRES_DB=postDB
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - post-db-data:/var/lib/postgresql/data
+    networks:
+      - blog-hub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d postDB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  user-db:
+    image: postgres
+    container_name: user-db
+    environment:
+      - POSTGRES_DB=userdb
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - blog-hub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d userdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  notification-service:
+    image: luffy010/blog-hub/notification-service
+    container_name: notification-service
+    networks:
+      - blog-hub-network
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Xms128m
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  post-service:
+    image: luffy010/blog-hub/post-service
+    container_name: post-service
+    networks:
+      - blog-hub-network
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Xms128m
+    depends_on:
+      post-db:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  user-service:
+    image: luffy010/blog-hub/user-service
+    container_name: user-service
+    networks:
+      - blog-hub-network
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Xms128m
+    depends_on:
+      user-db:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  connections-service:
+    image: luffy010/blog-hub/connections-service
+    container_name: connections-service
+    networks:
+      - blog-hub-network
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Xms128m
+    depends_on:
+      connections-db:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  api-gateway:
+    image: luffy010/blog-hub/api-gateway
+    container_name: api-gateway
+    networks:
+      - blog-hub-network
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Xms128m
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  kafka-data:
+  notification-db-data:
+  post-db-data:
+  user-db-data:
+  connections-db-data:
+
+networks:
+  blog-hub-network:

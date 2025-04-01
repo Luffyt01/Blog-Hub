@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  post-db:
+    image: postgres
+    container_name: post-db
+    environment:
+      - POSTGRES_DB=postDB
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    networks:
+      - blog-hub-network
+    volumes:
+      - post-db-data:/var/lib/postgresql/data
+
+  user-db:
+    image: postgres
+    container_name: user-db
+    environment:
+      - POSTGRES_DB=userDB
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    networks:
+      - blog-hub-network
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+
+  post-service:
+    image: luffy010/blog-hub/post-service
+    container_name: post-service
+    networks:
+      - blog-hub-network
+    depends_on:
+      - post-db
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  user-service:
+    image: luffy010/blog-hub/user-service
+    container_name: user-service
+    networks:
+      - blog-hub-network
+    depends_on:
+      - user-db
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  blog-hub-network:
+
+volumes:
+  post-db-data:
+  user-db-data:
